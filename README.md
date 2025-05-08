@@ -1,4 +1,4 @@
-# Conway's Game of Life in C++
+# Conway's Game of Life in C++ v2 with headers
 
 ## Overview
 This project is an implementation of Conway's Game of Life in C++. The Game of Life is a cellular automaton devised by mathematician John Conway. It consists of a grid of cells that evolve through generations based on a set of simple rules.
