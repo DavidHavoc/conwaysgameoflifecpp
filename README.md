@@ -1,45 +1,91 @@
 # Conway's Game of Life in C++
 
-## Overview
-This project is an implementation of Conway's Game of Life in C++. The Game of Life is a cellular automaton devised by mathematician John Conway. It consists of a grid of cells that evolve through generations based on a set of simple rules.
+This repository contains an implementation of Conway's Game of Life, a classic cellular automaton devised by mathematician John Conway. The program is written in C++ and is designed to be efficient, modular, and easy to use.
+
+## About Conway's Game of Life
+
+Conway's Game of Life is a zero-player game, meaning its evolution is determined by its initial state and requires no further input. It consists of a grid of cells, each of which can be alive or dead. The state of the grid evolves in steps based on the following rules:
+
+1. **Underpopulation**: A live cell with fewer than two live neighbors dies.
+2. **Survival**: A live cell with two or three live neighbors continues to live.
+3. **Overpopulation**: A live cell with more than three live neighbors dies.
+4. **Reproduction**: A dead cell with exactly three live neighbors becomes a live cell.
+
+This program simulates these rules and displays the evolution of the grid over time.
+
+---
 
 ## Features
-- High-performance C++ implementation.
-- Configurable grid size and rules.
-- File-based input and output options.
-- Visual representation of the simulation.
+
+- **Efficient Implementation**: Optimized for performance in C++.
+- **Customizable Grid Size**: Define the size of the grid at runtime.
+- **Interactive or Preset Patterns**: Start with manually defined patterns or use preset ones (e.g., gliders, oscillators).
+
+---
 
 ## Getting Started
 
 ### Prerequisites
-- C++17 or later compiler.
-- `CMake` version 3.10 or later.
+
+To build and run this project, you need:
+
+- A C++ compiler (e.g., GCC, Clang, MSVC)
+- [CMake](https://cmake.org/) for build automation
+- A terminal or console environment
 
 ### Installation
+
 1. Clone the repository:
    ```bash
    git clone https://github.com/DavidHavoc/conwaysgameoflifecpp.git
    cd conwaysgameoflifecpp
-Build the project using CMake:
-bash
-mkdir build
-cd build
-cmake ..
-make
-Usage
-Run the executable:
+   ```
 
-bash
-./conwaysgameoflife
-Configuration
-You can configure the grid size and other parameters by editing the configuration file located in config/.
+2. Build the project using CMake:
+   ```bash
+   mkdir build
+   cd build
+   cmake ..
+   make
+   ```
 
-Contributing
-Contributions are welcome! Please fork this repository, create a new branch for your feature or bugfix, and submit a pull request.
+3. Run the executable:
+   ```bash
+   ./GameOfLife
+   ```
 
-License
-This project is licensed under the MIT License. See LICENSE for details.
+---
 
-Acknowledgements
-John Horton Conway for inventing the Game of Life.
-Contributors to this repository: 
+If you want to enable the documentation generation or testing, you can pass those options when configuring CMake:
+   ```bash  
+   cmake -DBUILD_DOCS=ON -DBUILD_TESTS=ON ..
+   ```
+## Usage
+
+Once the program is running:
+
+1. You can input the grid size and choose a starting pattern.
+2. The simulation will display the grid in the terminal.
+
+## Contributing
+
+Contributions are welcome! If you’d like to improve the project, feel free to:
+
+1. Fork the repository.
+2. Create a new branch for your feature or bugfix.
+3. Submit a pull request for review.
+
+---
+
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+
+---
+
+## Acknowledgments
+
+- Inspired by John Conway's original concept of the Game of Life.
+- Special thanks to the open-source community for their tools and libraries.
+
+---
