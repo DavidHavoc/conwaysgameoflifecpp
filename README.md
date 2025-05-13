@@ -28,11 +28,8 @@ cmake ..
 make
 Usage
 Run the executable:
-
 bash
 ./conwaysgameoflife
-Configuration
-You can configure the grid size and other parameters by editing the configuration file located in config/.
 
 Contributing
 Contributions are welcome! Please fork this repository, create a new branch for your feature or bugfix, and submit a pull request.
