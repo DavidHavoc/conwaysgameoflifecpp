@@ -38,7 +38,7 @@ Contributing
 Contributions are welcome! Please fork this repository, create a new branch for your feature or bugfix, and submit a pull request.
 
 License
-This project is licensed under the MIT License. See LICENSE for details.
+This project is licensed under the MIT License.
 
 Acknowledgements
 John Horton Conway for inventing the Game of Life.
