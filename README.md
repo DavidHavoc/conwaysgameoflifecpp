@@ -51,7 +51,7 @@ To build and run this project, you need:
 
 3. Run the executable:
    ```bash
-   ./GameOfLife
+   ./game_of_life
    ```
 
 ---
