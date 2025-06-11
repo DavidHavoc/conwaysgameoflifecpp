@@ -8,6 +8,7 @@
 #include <string>
 #include <ctime>
 #include <algorithm>
+#include <omp.h>
 
 // GameOfLife class - handles the game logic and world state
 class GameOfLife {
@@ -51,8 +52,10 @@ public:
         load(filename);
     }
 
-    // Evolve the world one generation
+    // Evolve the world one generation - PARALLELIZED VERSION
     void evolve() {
+        // Parallel loop over all cells - no dependencies between iterations
+        #pragma omp parallel for collapse(2) schedule(static)
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 int neighbors = countNeighbors(x, y);
@@ -98,13 +101,24 @@ public:
         return false;
     }
 
-    // Print the current state of the world
+    // Print the current state of the world - PARALLELIZED VERSION
     void print() {
+        // Pre-compute all output strings in parallel
+        std::vector<std::string> lines(height);
+        
+        #pragma omp parallel for schedule(static)
         for (int y = 0; y < height; y++) {
+            std::string line;
+            line.reserve(width * 2); // Reserve space for efficiency
             for (int x = 0; x < width; x++) {
-                std::cout << (current[y][x] ? "■" : "□") << " ";
+                line += (current[y][x] ? "■ " : "□ ");
             }
-            std::cout << std::endl;
+            lines[y] = line;
+        }
+        
+        // Sequential output to maintain order
+        for (int y = 0; y < height; y++) {
+            std::cout << lines[y] << std::endl;
         }
     }
 
@@ -250,24 +264,34 @@ public:
         setCell((x + 1) % width, (y + 2) % height, true);
     }
 
-    // Add random patterns
+    // Add random patterns - PARALLELIZED VERSION
     void addRandomPatterns(int count) {
         std::random_device rd;
-        std::mt19937 gen(rd());
-        std::uniform_int_distribution<> disX(0, width - 1);
-        std::uniform_int_distribution<> disY(0, height - 1);
-        std::uniform_int_distribution<> disPattern(0, 3);
         
-        for (int i = 0; i < count; i++) {
-            int x = disX(gen);
-            int y = disY(gen);
-            int pattern = disPattern(gen);
+        // Create separate random generators for each thread to avoid race conditions
+        #pragma omp parallel
+        {
+            std::mt19937 gen(rd() + omp_get_thread_num());
+            std::uniform_int_distribution<> disX(0, width - 1);
+            std::uniform_int_distribution<> disY(0, height - 1);
+            std::uniform_int_distribution<> disPattern(0, 3);
             
-            switch (pattern) {
-                case 0: addGlider(x, y); break;
-                case 1: addToad(x, y); break;
-                case 2: addBeacon(x, y); break;
-                case 3: addMethuselah(x, y); break;
+            #pragma omp for schedule(static)
+            for (int i = 0; i < count; i++) {
+                int x = disX(gen);
+                int y = disY(gen);
+                int pattern = disPattern(gen);
+                
+                // Critical section to avoid race conditions when modifying the grid
+                #pragma omp critical
+                {
+                    switch (pattern) {
+                        case 0: addGlider(x, y); break;
+                        case 1: addToad(x, y); break;
+                        case 2: addBeacon(x, y); break;
+                        case 3: addMethuselah(x, y); break;
+                    }
+                }
             }
         }
     }
@@ -280,6 +304,19 @@ public:
     // Get world height
     int getHeight() const {
         return height;
+    }
+
+    // Benchmark function to test performance
+    double benchmarkEvolution(int generations) {
+        auto start = std::chrono::high_resolution_clock::now();
+        
+        for (int i = 0; i < generations; i++) {
+            evolve();
+        }
+        
+        auto end = std::chrono::high_resolution_clock::now();
+        std::chrono::duration<double, std::milli> elapsed = end - start;
+        return elapsed.count();
     }
 };
 
@@ -368,6 +405,33 @@ public:
             }
             
             runSimulation(generations);
+        } else if (command == "benchmark") {
+            if (!world) {
+                std::cout << "No world exists. Create or load a world first." << std::endl;
+                return true;
+            }
+            
+            int generations;
+            iss >> generations;
+            if (generations <= 0) {
+                std::cout << "Please provide a positive number of generations." << std::endl;
+                return true;
+            }
+            
+            std::cout << "Running benchmark with " << omp_get_max_threads() << " threads..." << std::endl;
+            double elapsed = world->benchmarkEvolution(generations);
+            std::cout << "Benchmark completed: " << generations << " generations in " 
+                      << elapsed << " ms" << std::endl;
+            std::cout << "Average time per generation: " << elapsed / generations << " ms" << std::endl;
+        } else if (command == "threads") {
+            int numThreads;
+            iss >> numThreads;
+            if (numThreads > 0) {
+                omp_set_num_threads(numThreads);
+                std::cout << "Set number of threads to " << numThreads << std::endl;
+            } else {
+                std::cout << "Current number of threads: " << omp_get_max_threads() << std::endl;
+            }
         } else if (command == "set") {
             if (!world) {
                 std::cout << "No world exists. Create or load a world first." << std::endl;
@@ -486,7 +550,7 @@ public:
             if (printEnabled) {
                 // Clear screen and move cursor to top-left
                 std::cout << "\033[2J\033[H";
-                std::cout << "Generation " << i + 1 << " of " << generations << std::endl;
+                std::cout << "Generation " << i + 1 << " of " << generations << " (Threads: " << omp_get_max_threads() << ")" << std::endl;
                 world->print();
                 std::this_thread::sleep_for(std::chrono::milliseconds(delayTime));
             }
@@ -510,7 +574,7 @@ public:
         std::chrono::duration<double, std::milli> elapsed = end - start;
         
         std::cout << "Simulation of " << generations << " generations completed in " 
-                  << elapsed.count() << " ms" << std::endl;
+                  << elapsed.count() << " ms (using " << omp_get_max_threads() << " threads)" << std::endl;
         
         if (isStable) {
             std::cout << "The world reached a stable state." << std::endl;
@@ -519,8 +583,8 @@ public:
 
     // Print help information
     void printHelp() {
-        std::cout << "Conway's Game of Life - Command Line Interface" << std::endl;
-        std::cout << "------------------------------------------------" << std::endl;
+        std::cout << "Conway's Game of Life - Parallelized Command Line Interface" << std::endl;
+        std::cout << "-----------------------------------------------------------" << std::endl;
         std::cout << "Available commands:" << std::endl;
         std::cout << "  create <width> <height>    - Create a new world with specified dimensions" << std::endl;
         std::cout << "  load <filename>            - Load a world from a file" << std::endl;
@@ -529,6 +593,8 @@ public:
         std::cout << "  delay <ms>                 - Set the delay time in milliseconds between generations" << std::endl;
         std::cout << "  stability <0|1>            - Disable/enable stability check" << std::endl;
         std::cout << "  run <n>                    - Run the simulation for n generations" << std::endl;
+        std::cout << "  benchmark <n>              - Run benchmark for n generations (no visualization)" << std::endl;
+        std::cout << "  threads <n>                - Set number of OpenMP threads (or show current)" << std::endl;
         std::cout << "  set <x> <y> <0|1>          - Set cell at (x,y) dead or alive" << std::endl;
         std::cout << "  set <pos> <0|1>            - Set cell at position pos dead or alive" << std::endl;
         std::cout << "  get <x> <y>                - Get state of cell at (x,y)" << std::endl;
@@ -544,7 +610,8 @@ public:
 
     // Main loop for command processing
     void run() {
-        std::cout << "Conway's Game of Life" << std::endl;
+        std::cout << "Conway's Game of Life (OpenMP Parallelized)" << std::endl;
+        std::cout << "Available threads: " << omp_get_max_threads() << std::endl;
         std::cout << "Type 'help' for a list of commands." << std::endl;
         
         std::string input;
